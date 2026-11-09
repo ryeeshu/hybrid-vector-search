@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Full proposal: heterogeneous CPU–GPU graph-based vector search with memory-aware execution, CMU 15-618, Fall 2026.">
+  <meta name="theme-color" content="#ffffff">
+  <title>Project Proposal | CPU–GPU Vector Search · CMU 15-618</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/styles.css">
+  <script src="../assets/main.js" defer></script>
+</head>
+<body class="proposal-page">
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="site-name" href="../">CPU–GPU Vector Search</a>
+    <nav aria-label="Main navigation">
+      <a href="../" >Home</a>
+      <a href="./" aria-current="page">Proposal</a>
+      <a href="../#deliverables">Deliverables</a>
+    </nav>
+  </div>
+</header>
+<main id="main" class="container">
+  <header class="project-heading proposal-heading">
+    <a class="back-link" href="../">← Back to project homepage</a>
+    <p class="eyebrow">Project Proposal · November 9, 2026</p>
+    <h1>Heterogeneous CPU–GPU Graph-Based Vector Search with Memory-Aware Execution</h1>
+    <p class="authors"><strong>Team Members:</strong> R Yeeshu Dhurandhar (<code>rdhurand</code>), Christian Yu (<code>cjyu</code>)</p>
+    <p class="course"><strong>Course:</strong> 15-618 — Parallel Computer Architecture and Programming, Fall 2026</p>
+    <div class="proposal-tools">
+      <p><strong>Project Website:</strong> <a class="project-url" href="https://ryeeshu.github.io/hybrid-vector-search/">https://ryeeshu.github.io/hybrid-vector-search/</a></p>
+      <button class="print-button" type="button" hidden>Print / Save as PDF</button>
+    </div>
+  </header>
+  <div class="proposal-layout">
+    <aside class="proposal-sidebar"><nav aria-label="Proposal contents"><h2>Contents</h2><a href="#summary">1. Summary</a>
+<a href="#background">2. Background</a>
+<a href="#challenge">3. The Challenge</a>
+<a href="#resources">4. Resources</a>
+<a href="#goals">5. Goals and Deliverables</a>
+<a href="#platform">6. Platform Choice</a>
+<a href="#schedule">7. Schedule</a>
+<a href="#references">8. References</a></nav></aside>
+    <article class="proposal-content" aria-label="Full project proposal">
+<section id="summary" class="proposal-section">
+<h2>1. Summary</h2>
+<p>We plan to build a hybrid CPU–GPU engine for graph-based Approximate Nearest-Neighbor (ANN) search, focusing on datasets that cannot fit entirely in GPU memory. We will investigate how parallel query processing, efficient CPU–GPU communication, batching, and overlapping computation with data transfers can improve search performance. Our implementation will use C++ multithreading and SIMD on the CPU, along with CUDA for parallel computation on the GPU.</p>
+</section>
+<section id="background" class="proposal-section">
+<h2>2. Background</h2>
+<p>Vector similarity search is widely used in applications such as recommendation systems, image retrieval, and semantic search. Each item in a dataset is represented as a high-dimensional vector, and given a query vector, the goal is to find the most similar vectors in the dataset.</p>
+<p>A straightforward solution is to compute the distance between the query and every vector. Although these distance calculations are highly parallelizable, examining the entire dataset can become expensive as its size increases.</p>
+<p>Approximate Nearest-Neighbor (ANN) algorithms reduce this cost by examining only a subset of the vectors. In graph-based ANN algorithms, such as Hierarchical Navigable Small World (HNSW), each vector is represented as a vertex connected to other nearby vectors. Starting from an entry vertex, the search repeatedly explores promising neighbors until it finds a set of approximate nearest neighbors.</p>
+<p>Unlike brute-force search, graph traversal has dependencies because the next vertices to explore are determined by the results of previous steps. Different queries may also explore different numbers of vertices, making the workload irregular and difficult to distribute efficiently.</p>
+<p>GPUs can accelerate distance calculations across many candidate vectors, but GPU memory is limited. For large datasets, storing both the graph and all the original vectors on the GPU may not be possible. Transferring data between CPU and GPU memory also introduces overhead, especially when each graph-search iteration requires only a small amount of computation.</p>
+<p>We plan to address these problems by keeping the complete graph and vector dataset in CPU memory while using the GPU to process batches of candidate vectors. The CPU will manage graph traversal and identify candidates, while the GPU will perform parallel distance calculations. We will investigate how to organize and schedule this work so that the GPU has enough computation to justify the communication cost.</p>
+<p>The proposed execution flow is:</p>
+<ol>
+<li>The CPU maintains the search frontier for each query and identifies the next candidate vertices.</li>
+<li>Candidate vectors from multiple queries are grouped into batches and transferred to the GPU.</li>
+<li>CUDA kernels compute distances between the candidate vectors and their corresponding queries.</li>
+<li>The results are returned to the CPU, which updates each query&#x27;s search frontier.</li>
+<li>The process continues until the searches finish.</li>
+</ol>
+<p>We will progressively optimize this design to reduce communication overhead and improve CPU and GPU utilization.</p>
+</section>
+<section id="challenge" class="proposal-section">
+<h2>3. The Challenge</h2>
+<p>The main challenge is that graph-based ANN search does not provide the same regular, independent work as brute-force vector search. Although distance calculations can execute in parallel, graph traversal introduces dependencies and irregular memory accesses. We want to investigate how to expose enough parallelism to use the GPU efficiently without introducing excessive communication or synchronization overhead.</p>
+<p><strong>Irregular graph traversal and workload imbalance.</strong> Each query follows a different path through the graph, and the number of candidates discovered at each step varies. Some queries may finish quickly, while others require many more expansions. Assigning a fixed amount of GPU work to each query can therefore lead to poor utilization. We plan to explore batching candidates from multiple queries and distributing this work across CUDA threads. We will also examine how batch size affects load balance, throughput, and latency.</p>
+<p><strong>CPU–GPU communication overhead.</strong> Unlike conventional GPU workloads that perform many operations on the same data, graph search can require frequent communication between the CPU and GPU. Each iteration depends on results from earlier iterations, so transferring only a few vectors at a time may cost more than the computation itself. We want to study how much communication can be reduced or hidden through batching and pipelined execution.</p>
+<p><strong>Limited GPU memory and data locality.</strong> The full dataset may be larger than available GPU memory, requiring candidate vectors to be fetched from host memory. Graph traversal can access vectors scattered throughout the dataset, resulting in poor locality and unpredictable transfers. We plan to implement a bounded GPU-memory staging system and investigate how the available device memory affects performance. If time permits, we will explore caching frequently accessed vectors on the GPU to reduce repeated transfers.</p>
+<p><strong>Overlapping computation and communication.</strong> In a naive implementation, the CPU discovers candidates, waits for their transfer and GPU computation, and then resumes traversal. This leaves one or both processors idle at different points. We plan to investigate asynchronous transfers and multiple CUDA streams so that the CPU can prepare future work while the GPU processes existing batches. The difficulty is coordinating these operations while respecting the dependencies of each search and avoiding unnecessary synchronization.</p>
+<p><strong>Search quality versus performance.</strong> Since ANN search is approximate, changing the number of candidates explored or the order in which they are processed may affect the quality of the results. We will evaluate search accuracy using recall@k and compare execution strategies at similar recall levels. This will help distinguish genuine performance improvements from approaches that simply perform less search work.</p>
+<p>Through this project, we hope to better understand how irregular, dependency-heavy workloads can be mapped efficiently onto heterogeneous parallel hardware, and how memory placement, communication, and scheduling decisions affect overall performance.</p>
+</section>
+<section id="resources" class="proposal-section">
+<h2>4. Resources</h2>
+<p>We plan to implement the engine primarily in C++ and CUDA, using the course&#x27;s GHC machines equipped with NVIDIA RTX 2080 GPUs. We will use CPU multithreading for concurrent graph traversal and SIMD instructions where appropriate for CPU distance calculations. CUDA kernels will perform batched candidate-distance computations, while CUDA streams and pinned host-memory buffers will be used to investigate asynchronous transfers and communication-computation overlap.</p>
+<p>We plan to use Faiss to construct the HNSW index and extract its graph connections for our own search implementation. We will verify the graph extraction and search interface during the first week. We will implement our own search traversal, candidate batching, CUDA computation, and CPU–GPU execution pipeline rather than rely on an existing ANN library for the main search operation.</p>
+<p>We plan to begin with the SIFT1M benchmark, which contains one million 128-dimensional vectors, along with query vectors and ground-truth nearest-neighbor results. We will also use controlled synthetic workloads to vary dataset size, query concurrency, and access patterns.</p>
+<p>Since SIFT1M fits within GPU memory, we will initially enforce a configurable GPU-memory budget to study out-of-core behavior. If resources and index-construction time permit, we will also evaluate a larger dataset whose memory footprint genuinely exceeds the available GPU memory.</p>
+<p>Our primary references will be the BANG paper on CPU–GPU graph-based ANN search, NVIDIA&#x27;s CAGRA graph-search design, and the CUDA programming and optimization documentation.</p>
+</section>
+<section id="goals" class="proposal-section">
+<h2>5. Goals and Deliverables</h2>
+<p>Our main goal is to develop a working CPU–GPU graph-based ANN engine and evaluate how different execution strategies affect search throughput, latency, communication overhead, and hardware utilization.</p>
+<h3>5.1 What We Plan to Achieve</h3>
+<h4>1. CPU-based graph-search implementation</h4>
+<p>We will implement a graph-based ANN search engine in C++ that maintains candidate frontiers, explores graph neighbors, computes distances, and returns approximate nearest neighbors. We will support multiple concurrent queries using CPU multithreading and investigate SIMD acceleration for distance calculations. This implementation will serve as our CPU-only performance baseline.</p>
+<h4>2. Basic hybrid CPU–GPU execution</h4>
+<p>We will implement a hybrid version in which the CPU controls graph traversal and the GPU computes distances for candidate vectors. Our initial implementation will perform candidate transfers and GPU computation in a straightforward, synchronized manner. This will provide a baseline for measuring communication and synchronization overhead.</p>
+<h4>3. Parallel batching of graph-search workloads</h4>
+<p>We will develop a batching mechanism that combines candidates from multiple independent queries into larger GPU workloads. Each query will maintain its own search state, while the shared GPU execution path processes candidate vectors in parallel. We will investigate different batch sizes and measure their effects on GPU utilization, search throughput, and query latency.</p>
+<h4>4. Memory-limited CPU–GPU execution</h4>
+<p>We will vary the available GPU-memory budget to investigate how buffer capacity, batch size, and the number of concurrent transfers affect performance. If time permits, we will also introduce GPU-resident caching to study how data reuse and memory placement can reduce transfer overhead.</p>
+<h4>5. Pipelined execution and communication overlap</h4>
+<p>We will implement a pipelined execution strategy using asynchronous CUDA operations and multiple buffers. The goal is to overlap CPU graph traversal, data transfers, and GPU computation across independent query batches wherever dependencies allow. We will compare this implementation against the synchronized hybrid baseline to determine whether overlapping these operations improves performance.</p>
+<h4>6. Performance evaluation</h4>
+<p>We will compare the following execution strategies:</p>
+<ul>
+<li>CPU-only graph search.</li>
+<li>Basic hybrid CPU–GPU search with synchronized transfers.</li>
+<li>Hybrid search with batched candidate processing.</li>
+<li>Hybrid search with asynchronous, pipelined execution.</li>
+</ul>
+<p>We will evaluate performance across different dataset sizes, query batch sizes, search parameters, and GPU-memory budgets.</p>
+<p>Our primary metrics will be queries per second, average and tail query latency, recall@k, CPU–GPU data-transfer time and volume, and the time spent in different execution stages. We will also use CPU and GPU profiling tools to investigate memory bandwidth, kernel execution, synchronization overhead, and hardware utilization.</p>
+<p>We hope to achieve a meaningful throughput improvement over the basic hybrid implementation, particularly for workloads with many concurrent queries. As an initial performance target, we would like to investigate whether batching and pipelining can provide at least a 1.5× throughput improvement on suitable batch-heavy workloads. This is a tentative goal based on the opportunity to reduce repeated kernel-launch overhead and overlap otherwise idle periods; the actual benefit will depend on the hardware and workload. We will report and analyze the results even if the improvement is smaller or the CPU-only implementation performs better.</p>
+<h3>5.2 What We Hope to Achieve</h3>
+<h4>1. GPU-resident vector caching</h4>
+<p>If the main implementation is completed ahead of schedule, we would like to introduce a cache for selected vectors in GPU memory. Instead of transferring every candidate vector whenever it is needed, the engine could reuse vectors that are already resident. We would compare simple caching policies and study how cache size and query locality affect transfer volume and performance.</p>
+<h4>2. More parallel graph traversal on the GPU</h4>
+<p>We would also like to explore moving some graph-search operations, such as candidate selection or frontier expansion, onto the GPU. This could reduce the need to return intermediate results to the CPU after every iteration and expose additional parallelism within individual searches. However, it would require managing dynamic search state and synchronization on the GPU, so we consider it an ambitious extension rather than a required feature.</p>
+<h4>3. Adaptive CPU–GPU Workload Scheduling</h4>
+<p>If the main hybrid search engine is completed ahead of schedule, we would like to explore an adaptive scheduling strategy that decides whether candidate-distance computations should execute on the CPU or GPU. Instead of always sending candidates to the GPU, the scheduler would consider factors such as batch size, GPU availability, data-transfer overhead, and whether the required vectors are already present in GPU memory.</p>
+<p>We would first implement a simple threshold-based scheduling policy and then investigate a workload-aware policy using measured execution costs. We would compare these approaches against CPU-only and GPU-only candidate processing under different query loads, measuring throughput, average and tail latency, and communication overhead. Our goal would be to identify when using both processors is beneficial and when the overhead of GPU execution outweighs its advantages.</p>
+<h3>5.3 Goals If Progress Is Slower Than Expected</h3>
+<p>If implementation or integration takes longer than expected, we will prioritize completing the CPU-only engine, the basic hybrid execution path, and multi-query GPU batching.</p>
+<p>We would simplify the asynchronous pipeline if necessary and concentrate on comparing the working implementations thoroughly, including identifying communication and synchronization bottlenecks. GPU-resident caching and GPU-managed graph traversal would remain optional.</p>
+<h3>5.4 Expected Experimental Findings</h3>
+<p>In addition to measuring performance improvements, we want to answer several questions:</p>
+<ul>
+<li>At what query batch sizes does GPU acceleration become beneficial compared with CPU-only search?</li>
+<li>How much does combining graph-search work from multiple queries improve GPU utilization?</li>
+<li>How much time is spent computing distances versus transferring data and waiting for synchronization?</li>
+<li>Under what conditions does overlapping CPU work, transfers, and GPU execution improve throughput?</li>
+<li>How does reducing the available GPU-memory budget affect execution time?</li>
+<li>How does the amount of graph exploration affect the trade-off between search accuracy and performance?</li>
+</ul>
+<p>We expect different execution strategies to perform better under different workloads, rather than one implementation being optimal in every case.</p>
+<p>At the poster session, we plan to present the system architecture, performance graphs, and a breakdown of the main bottlenecks. If time permits, we may also provide a small demonstration that runs the same query workload using different execution modes.</p>
+</section>
+<section id="platform" class="proposal-section">
+<h2>6. Platform Choice</h2>
+<p>We chose a heterogeneous CPU–GPU platform because the two architectures have different strengths that are relevant to graph-based ANN search.</p>
+<p>The CPU is well suited for managing control-heavy operations such as graph traversal, maintaining candidate frontiers, and making decisions based on previously computed results. Multithreading can also allow multiple independent queries to progress concurrently.</p>
+<p>The GPU is well suited for performing the same numerical operation across many candidate vectors. By combining candidate work from several queries, we aim to create sufficiently large batches to make effective use of CUDA&#x27;s parallel execution resources and memory bandwidth.</p>
+<p>The main difficulty is that the CPU and GPU have separate memory spaces, and data movement between them can be expensive. This makes our chosen platform useful for studying the interaction between computation, communication, data locality, and synchronization.</p>
+<p>C++ and CUDA provide direct control over memory allocation, CPU threads, GPU kernels, and asynchronous operations, allowing us to experiment with different parallel execution strategies and measure their overheads.</p>
+</section>
+<section id="schedule" class="proposal-section">
+<h2>7. Schedule</h2>
+<p>We plan to divide the implementation so that one team member initially focuses on CPU graph traversal and the search baseline, while the other focuses on CUDA kernels and GPU data movement. Both members will work on integration, optimization, and experimental analysis.</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Proposal schedule"><table>
+<thead><tr><th scope="col">Period</th><th scope="col">Planned Work</th></tr></thead><tbody>
+<tr><th scope="row"><strong>Nov 6–9</strong></th><td>Study graph-based ANN algorithms and CPU–GPU execution approaches. Finalize the dataset, graph representation, search parameters, system architecture, and benchmarking methodology. Submit the project proposal by <strong>Nov 9</strong>.</td></tr>
+<tr><th scope="row"><strong>Nov 10–16</strong></th><td>Implement and validate CPU graph search, including frontier management and multi-query execution. Implement an initial CUDA candidate-distance kernel and measure basic transfer and computation costs.</td></tr>
+<tr><th scope="row"><strong>Nov 17–23</strong></th><td>Integrate CPU graph traversal with GPU candidate processing. Implement basic multi-query batching and collect preliminary results comparing CPU-only and synchronized hybrid execution. Submit the <strong>milestone report by Nov 23</strong>, including an updated schedule and remaining technical challenges.</td></tr>
+<tr><th scope="row"><strong>Nov 24–30</strong></th><td>Implement bounded GPU-memory staging and improve the batching mechanism. Introduce pinned buffers, asynchronous transfers, and pipelined execution using CUDA streams and events.</td></tr>
+<tr><th scope="row"><strong>Dec 1–7</strong></th><td>Optimize and profile the completed implementations. Run experiments across different query counts, search parameters, dataset sizes, and memory budgets. Analyze communication, synchronization, load imbalance, and execution-time breakdowns.</td></tr>
+<tr><th scope="row"><strong>Dec 8–10</strong></th><td>Complete final experiments, prepare performance graphs, document unsuccessful and successful optimizations, and write the final report. Submit the <strong>final report by Dec 10</strong>.</td></tr>
+<tr><th scope="row"><strong>Dec 11</strong></th><td>Present the architecture, experimental results, and main findings at the project poster session.</td></tr>
+</tbody></table></div>
+<p>We will review our progress each week and update the schedule based on implementation difficulties and preliminary performance results. In particular, we plan to evaluate CPU–GPU transfer overhead early, since it will influence which optimizations are most worthwhile.</p>
+</section>
+<section id="references" class="proposal-section">
+<h2>8. References</h2>
+<ol class="references">
+<li>Karthik V., Saim Khan, Somesh Singh, Harsha Vardhan Simhadri, and Jyothi Vedurada. <em>BANG: Billion-Scale Approximate Nearest Neighbor Search Using a Single GPU.</em> IEEE Transactions on Big Data, 2025.<br><a href="https://arxiv.org/abs/2401.11324">https://arxiv.org/abs/2401.11324</a></li>
+<li>Yu. A. Malkov and D. A. Yashunin. <em>Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs.</em> IEEE Transactions on Pattern Analysis and Machine Intelligence, 2020.<br><a href="https://arxiv.org/abs/1603.09320">https://arxiv.org/abs/1603.09320</a></li>
+<li>NVIDIA. <em>CAGRA: GPU-Optimized Graph-Based Approximate Nearest Neighbor Search.</em> NVIDIA cuVS Documentation.<br><a href="https://docs.nvidia.com/cuvs/user-guide/api-guides/indexing-guide/cagra">https://docs.nvidia.com/cuvs/user-guide/api-guides/indexing-guide/cagra</a></li>
+<li>Meta Research. <em>Faiss: A Library for Efficient Similarity Search and Clustering of Dense Vectors.</em><br><a href="https://github.com/facebookresearch/faiss">https://github.com/facebookresearch/faiss</a></li>
+<li>NVIDIA. <em>CUDA C++ Best Practices Guide.</em><br><a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/">https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/</a></li>
+<li>NVIDIA. <em>How to Overlap Data Transfers in CUDA C/C++.</em><br><a href="https://developer.nvidia.com/blog/how-overlap-data-transfers-cuda-cc/">https://developer.nvidia.com/blog/how-overlap-data-transfers-cuda-cc/</a></li>
+<li><em>RUMMY (NSDI 2024).</em> Studies query-aware batching, GPU memory management, and overlapping data transfers with computation.<br><a href="https://www.usenix.org/conference/nsdi24/technical-sessions">https://www.usenix.org/conference/nsdi24/technical-sessions</a></li>
+<li><em>FlowANN (OSDI 2026).</em> Studies graph-search dependencies and pipelining GPU computation with graph-data transfers.<br><a href="https://www.usenix.org/conference/osdi26/presentation/zhao">https://www.usenix.org/conference/osdi26/presentation/zhao</a></li>
+</ol>
+</section>
+    </article>
+  </div>
+</main>
+<footer class="site-footer"><div class="container footer-inner">
+  <p>15-618 Final Project · Fall 2026<br>Carnegie Mellon University</p>
+  <nav aria-label="Footer navigation"><a href="../">Home</a><a href="./">Proposal</a></nav>
+</div></footer>
+</body>
+</html>

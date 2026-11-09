@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Memory-aware heterogeneous CPU–GPU graph-based vector search. A Carnegie Mellon University 15-618 project, Fall 2026.">
+  <meta name="theme-color" content="#ffffff">
+  <title>Project | CPU–GPU Vector Search · CMU 15-618</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/styles.css">
+  <script src="assets/main.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="site-name" href="./">CPU–GPU Vector Search</a>
+    <nav aria-label="Main navigation">
+      <a href="./" aria-current="page">Home</a>
+      <a href="proposal/" >Proposal</a>
+      <a href="./#deliverables">Deliverables</a>
+    </nav>
+  </div>
+</header>
+<main id="main" class="container home-content">
+  <header class="project-heading">
+    <p class="eyebrow">Carnegie Mellon University · 15-618 · Fall 2026</p>
+    <h1>Heterogeneous CPU–GPU Graph-Based Vector Search with Memory-Aware Execution</h1>
+    <p class="subtitle">Exploring how irregular graph-search workloads can be executed efficiently across CPUs and GPUs under limited GPU memory.</p>
+    <p class="authors">R Yeeshu Dhurandhar (<code>rdhurand</code>) and Christian Yu (<code>cjyu</code>)</p>
+    <a class="proposal-link" href="proposal/">Read Project Proposal <span aria-hidden="true">→</span></a>
+  </header>
+
+  <section id="overview" aria-labelledby="overview-heading">
+    <h2 id="overview-heading">Project Overview</h2>
+    <p>We plan to build a hybrid CPU–GPU engine for graph-based Approximate Nearest-Neighbor (ANN) search, focusing on datasets that cannot fit entirely in GPU memory. We will investigate how parallel query processing, efficient CPU–GPU communication, batching, and overlapping computation with data transfers can improve search performance. Our implementation will use C++ multithreading and SIMD on the CPU, along with CUDA for parallel computation on the GPU.</p>
+    <p>The project focuses on the parallel execution of graph-based search rather than training machine learning models or developing a new graph-construction algorithm.</p>
+  </section>
+
+  <section id="motivation" aria-labelledby="motivation-heading">
+    <h2 id="motivation-heading">Why Is This Challenging?</h2>
+    <p>Vector similarity search is used to find items with similar numerical representations, such as related images, documents, or products. Searching every vector is easy to parallelize, but it can become expensive for large datasets.</p>
+    <p>Graph-based approximate nearest-neighbor search avoids examining every vector by exploring a graph of related vectors. However, this introduces dependencies: the next vertices to explore depend on the results of earlier steps.</p>
+    <p>This creates several challenges when combining CPUs and GPUs.</p>
+    <div class="challenge-grid">
+      <div><h3>Irregular Graph Traversal</h3><p>Different queries follow different paths through the graph and generate varying amounts of work. The next candidates are discovered dynamically, making it difficult to maintain efficient parallel execution.</p></div>
+      <div><h3>CPU–GPU Communication</h3><p>Candidate vectors and search results must move between CPU and GPU memory. For small candidate sets, communication and kernel-launch overhead can outweigh the benefit of GPU computation.</p></div>
+      <div><h3>Limited GPU Memory</h3><p>Large vector datasets may not fit entirely in device memory. The engine must fetch or stage candidate data from host memory while operating within a limited GPU-memory budget.</p></div>
+      <div><h3>Synchronization and Pipelining</h3><p>Graph traversal contains dependencies, but different queries can make progress independently. Coordinating CPU work, data transfers, and GPU computation may help reduce idle time.</p></div>
+    </div>
+  </section>
+
+  <section id="architecture" aria-labelledby="architecture-heading">
+    <h2 id="architecture-heading">Proposed System Architecture</h2>
+    <p>Our initial design keeps the complete graph and vector dataset in CPU memory. The CPU maintains the search frontier for each query and discovers the next candidate vertices. Candidates from multiple queries are combined into batches, transferred to the GPU, and processed using CUDA kernels.</p>
+    <p>The GPU returns the computed distances, allowing the CPU to update the search frontiers and continue traversal. We will progressively optimize this execution pipeline through batching, memory-limited staging, and asynchronous communication.</p>
+    <figure class="architecture-figure">
+      <div class="figure-scroll" tabindex="0" role="region" aria-label="System architecture diagram; scroll horizontally on small screens">
+        <img src="assets/architecture.svg" width="1080" height="630" alt="Incoming ANN queries enter CPU graph traversal and per-query frontiers. CPU workers discover candidates, batch them, and stage vectors from the full graph and vector dataset in host memory. Host-to-device transfers supply temporary GPU buffers within a limited memory budget. CUDA computes candidate distances in parallel; results return to CPU frontier management. Independent batches permit asynchronous transfers and buffering.">
+      </div>
+      <figcaption>Proposed heterogeneous execution pipeline. The CPU controls graph traversal and candidate discovery, while the GPU processes batches of candidate vectors. Communication and computation may overlap across independent query batches.</figcaption>
+    </figure>
+    <ol class="architecture-steps">
+      <li><strong>Candidate Discovery:</strong> CPU workers expand graph vertices and identify candidate neighbors for each query.</li>
+      <li><strong>Batch Formation:</strong> Candidates from multiple queries are grouped into GPU work batches.</li>
+      <li><strong>GPU Processing:</strong> CUDA kernels calculate distances for candidate vectors in parallel.</li>
+      <li><strong>Frontier Update:</strong> Results return to the CPU, where each query's search state is updated.</li>
+      <li><strong>Pipelined Execution:</strong> Independent query batches allow CPU work, data transfers, and GPU computation to overlap.</li>
+    </ol>
+  </section>
+
+  <section id="strategies" aria-labelledby="strategies-heading">
+    <h2 id="strategies-heading">Execution Strategies</h2>
+    <p>We will implement and compare four execution strategies to understand how batching and asynchronous execution affect performance.</p>
+    <ol class="strategy-list">
+      <li><h3>CPU-only Search</h3><p>Graph traversal and candidate-distance calculations are performed on the CPU. This serves as the reference implementation and performance baseline.</p></li>
+      <li><h3>Basic Hybrid Search</h3><p>The CPU controls traversal, while the GPU computes candidate distances. Transfers and execution are synchronized, providing a baseline for identifying communication overhead.</p></li>
+      <li><h3>Batched Hybrid Search</h3><p>Candidates from multiple queries are grouped into larger GPU workloads. This aims to improve GPU utilization and reduce the overhead of many small kernel launches.</p></li>
+      <li><h3>Pipelined Hybrid Search</h3><p>Asynchronous transfers and multiple buffers are used to overlap CPU graph traversal, communication, and GPU computation across independent query batches.</p></li>
+    </ol>
+  </section>
+
+  <section id="goals" aria-labelledby="goals-heading">
+    <h2 id="goals-heading">Project Goals</h2>
+    <div class="goals-grid">
+      <div><h3>Planned Deliverables</h3><ul>
+        <li>A correct multithreaded CPU graph-search implementation.</li>
+        <li>A basic hybrid CPU–GPU graph-search engine.</li>
+        <li>Batched GPU candidate-distance processing.</li>
+        <li>Memory-limited GPU data staging.</li>
+        <li>Pipelined CPU–GPU execution using asynchronous operations.</li>
+        <li>Performance comparisons across execution strategies, workload sizes, and GPU-memory budgets.</li>
+      </ul></div>
+      <div><h3>Stretch Goals</h3><ul>
+        <li>GPU-resident vector caching to reduce repeated transfers.</li>
+        <li>Moving selected graph-search operations onto the GPU.</li>
+        <li>Adaptive CPU–GPU scheduling based on workload size, transfer overhead, and device availability.</li>
+      </ul></div>
+    </div>
+    <p class="section-note">These stretch goals are optional. Our priority is to deliver a correct implementation of the main execution strategies and provide a detailed experimental analysis.</p>
+  </section>
+
+  <section id="evaluation" aria-labelledby="evaluation-heading">
+    <h2 id="evaluation-heading">Experimental Evaluation</h2>
+    <p>We will compare CPU-only, synchronized hybrid, batched hybrid, and pipelined hybrid implementations using graph-based ANN workloads.</p>
+    <p>Our experiments will vary query concurrency, search parameters, dataset size, and GPU-memory budgets. We will evaluate performance at comparable search recall so that improvements are not simply caused by performing less search work.</p>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Evaluation metrics"><table>
+      <thead><tr><th scope="col">Metric</th><th scope="col">What It Measures</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Queries per second</th><td>Overall search throughput</td></tr>
+        <tr><th scope="row">Average and tail latency</th><td>Time required to complete queries</td></tr>
+        <tr><th scope="row">Recall@k</th><td>Accuracy of approximate nearest-neighbor results</td></tr>
+        <tr><th scope="row">CPU–GPU transfer overhead</th><td>Time and volume of data movement</td></tr>
+        <tr><th scope="row">GPU utilization</th><td>Effectiveness of parallel GPU execution</td></tr>
+        <tr><th scope="row">Execution-time breakdown</th><td>Computation, communication, and synchronization costs</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="timeline" aria-labelledby="timeline-heading">
+    <h2 id="timeline-heading">Timeline</h2>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Project timeline"><table class="timeline-table">
+      <thead><tr><th scope="col">Dates</th><th scope="col">Milestone</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">November 6–9, 2026</th><td>Finalize architecture, dataset, graph format, and proposal</td></tr>
+        <tr><th scope="row">November 10–16, 2026</th><td>CPU graph-search baseline and initial CUDA kernel</td></tr>
+        <tr><th scope="row">November 17–23, 2026</th><td>Hybrid integration, batching, and milestone report</td></tr>
+        <tr><th scope="row">November 24–30, 2026</th><td>GPU-memory staging and asynchronous execution</td></tr>
+        <tr><th scope="row">December 1–7, 2026</th><td>Profiling, optimization, and experiments</td></tr>
+        <tr><th scope="row">December 8–10, 2026</th><td>Final report and performance analysis</td></tr>
+        <tr><th scope="row">December 11, 2026</th><td>Project poster presentation</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="deliverables" aria-labelledby="deliverables-heading">
+    <h2 id="deliverables-heading">Project Deliverables</h2>
+    <dl class="deliverables-list">
+      <div><dt>Project Proposal</dt><dd><time datetime="2026-11-09">November 9, 2026</time></dd><dd><a href="proposal/">Read Proposal <span aria-hidden="true">→</span></a></dd></div>
+      <div><dt>Milestone Report</dt><dd>Due <time datetime="2026-11-23">November 23, 2026</time></dd><dd class="status">Upcoming</dd></div>
+      <div><dt>Final Report</dt><dd>Due <time datetime="2026-12-10">December 10, 2026</time></dd><dd class="status">Upcoming</dd></div>
+      <div><dt>Project Poster</dt><dd><time datetime="2026-12-11">December 11, 2026</time></dd><dd class="status">Upcoming</dd></div>
+      <div><dt>Source Code</dt><dd class="source-code-note">Will be linked when the project repository is ready for publication.</dd></div>
+    </dl>
+  </section>
+
+  <section id="team" aria-labelledby="team-heading">
+    <h2 id="team-heading">Team</h2>
+    <div class="team-grid">
+      <div><h3>R Yeeshu Dhurandhar</h3><p>Andrew ID: <code>rdhurand</code><br>Carnegie Mellon University</p></div>
+      <div><h3>Christian Yu</h3><p>Andrew ID: <code>cjyu</code><br>Carnegie Mellon University</p></div>
+    </div>
+  </section>
+</main>
+<footer class="site-footer"><div class="container footer-inner">
+  <p>15-618 Final Project · Fall 2026<br>Carnegie Mellon University</p>
+  <nav aria-label="Footer navigation"><a href="./">Home</a><a href="proposal/">Proposal</a></nav>
+</div></footer>
+</body>
+</html>

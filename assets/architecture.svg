@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 630" width="1080" height="630" role="img" aria-labelledby="title description">
+  <title id="title">Proposed CPU–GPU graph-search architecture</title>
+  <desc id="description">ANN queries enter CPU graph traversal and per-query search frontiers. Candidate discovery and multi-query batching use the full graph and vector dataset in host memory. Candidate-vector staging and host-to-device transfers submit work to temporary GPU buffers under a limited memory budget. CUDA calculates distances in parallel. A dashed feedback loop returns distances to CPU frontier management. Asynchronous transfers and buffering can overlap independent batches.</desc>
+  <defs>
+    <marker id="submit" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#246478"/></marker>
+    <marker id="return" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#657681"/></marker>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; fill: #253947; }
+      .heading { font-size: 19px; font-weight: 600; }
+      .label { font-size: 16px; }
+      .small { font-size: 14px; fill: #506371; }
+      .mono { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; letter-spacing: .6px; fill: #365c6b; }
+      .panel { fill: #fff; stroke: #c5d0d6; stroke-width: 1.3; }
+      .buffer { fill: #edf4f6; stroke: #b4cbd4; stroke-width: 1; }
+      .work { fill: none; stroke: #246478; stroke-width: 2; marker-end: url(#submit); }
+      .feedback { fill: none; stroke: #657681; stroke-width: 2; stroke-dasharray: 7 5; marker-end: url(#return); }
+    </style>
+  </defs>
+  <rect width="1080" height="630" fill="#fafcfd"/>
+  <rect x="30" y="25" width="310" height="62" rx="3" class="buffer"/>
+  <text x="185" y="61" text-anchor="middle" class="label">Incoming ANN Search Queries</text>
+  <path d="M185 87V149" class="work"/>
+  <path d="M760 43H807" class="work"/><text x="820" y="48" class="small">Work submission</text>
+  <path d="M760 75H807" class="feedback"/><text x="820" y="80" class="small">Results feedback</text>
+
+  <rect x="30" y="155" width="310" height="320" rx="3" class="panel"/>
+  <path d="M30 202H340" stroke="#d6dfe3"/>
+  <text x="50" y="185" class="heading">CPU · Search control</text>
+  <text x="50" y="234" class="label">Per-query search frontiers</text>
+  <text x="50" y="264" class="label">Graph traversal</text>
+  <text x="50" y="294" class="label">Candidate discovery</text>
+  <text x="50" y="324" class="label">Multi-query batching</text>
+  <rect x="50" y="351" width="270" height="103" rx="2" class="buffer"/>
+  <text x="66" y="378" class="mono">HOST MEMORY</text>
+  <text x="66" y="406" class="label">Full graph and</text>
+  <text x="66" y="430" class="label">vector dataset</text>
+
+  <rect x="380" y="155" width="285" height="320" rx="3" class="panel"/>
+  <path d="M380 202H665" stroke="#d6dfe3"/>
+  <text x="400" y="185" class="heading">Communication</text>
+  <text x="400" y="245" class="label">Candidate-vector staging</text>
+  <text x="400" y="281" class="label">Host-to-device transfers</text>
+  <path d="M340 285H374" class="work"/>
+  <path d="M665 285H699" class="work"/>
+  <rect x="400" y="340" width="245" height="114" rx="2" class="buffer"/>
+  <text x="416" y="370" class="label">Asynchronous transfers</text>
+  <text x="416" y="396" class="label">and buffering</text>
+  <text x="416" y="429" class="small">Across independent batches</text>
+
+  <rect x="705" y="155" width="345" height="320" rx="3" class="panel"/>
+  <path d="M705 202H1050" stroke="#d6dfe3"/>
+  <text x="725" y="185" class="heading">GPU · Candidate computation</text>
+  <text x="725" y="241" class="label">CUDA candidate-distance</text>
+  <text x="725" y="267" class="label">computation</text>
+  <text x="725" y="307" class="label">Parallel batch processing</text>
+  <rect x="725" y="340" width="305" height="114" rx="2" class="buffer"/>
+  <text x="741" y="371" class="mono">DEVICE MEMORY</text>
+  <text x="741" y="400" class="label">Temporary GPU buffers</text>
+  <text x="741" y="429" class="small">Limited GPU memory budget</text>
+
+  <path d="M880 475V527H15V229H27" class="feedback"/>
+  <rect x="320" y="510" width="440" height="33" fill="#fafcfd"/>
+  <text x="540" y="532" text-anchor="middle" class="label">GPU results returned to CPU frontier management</text>
+  <text x="540" y="579" text-anchor="middle" class="small">Computed distances update each frontier; the CPU selects the next candidates.</text>
+  <text x="540" y="606" text-anchor="middle" class="small">CPU work, transfers, and GPU computation may overlap across independent query batches.</text>
+</svg>

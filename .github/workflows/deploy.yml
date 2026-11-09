@@ -1,0 +1,74 @@
+name: Deploy project website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - proposal/**
+      - assets/**
+      - scripts/check_site.py
+      - .nojekyll
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+      - name: Check internal links and markup
+        run: python3 scripts/check_site.py
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Stage public files and set the deployed proposal URL
+        env:
+          PROJECT_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import shutil
+          from pathlib import Path
+          from html import escape
+          import re
+
+          output = Path('_site')
+          output.mkdir()
+          for name in ('index.html', '.nojekyll'):
+              shutil.copy2(name, output / name)
+          for name in ('assets', 'proposal'):
+              shutil.copytree(name, output / name)
+          page = output / 'proposal/index.html'
+          url = escape(os.environ['PROJECT_URL'].rstrip('/') + '/', quote=True)
+          source = page.read_text()
+          source, count = re.subn(
+              r'<a class="project-url" href="[^"]*">[^<]*</a>',
+              lambda _: f'<a class="project-url" href="{url}">{url}</a>',
+              source,
+          )
+          assert count == 1, 'Expected exactly one project website link'
+          page.write_text(source)
+          PY
+      - name: Upload static website
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
