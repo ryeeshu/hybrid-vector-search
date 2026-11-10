@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#ffffff">
   <title>Project Proposal | CPU–GPU Vector Search · CMU 15-618</title>
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="../assets/styles.css?v=compact-1">
+  <link rel="stylesheet" href="../assets/styles.css?v=proposal-figure-1">
   <script src="../assets/main.js?v=animation-2" defer></script>
 </head>
 <body class="proposal-page">
@@ -65,6 +65,10 @@
 <li>The process continues until the searches finish.</li>
 </ol>
 <p>We will progressively optimize this design to reduce communication overhead and improve CPU and GPU utilization.</p>
+<figure id="fig-architecture" class="proposal-figure">
+  <img src="../assets/architecture.png" width="1920" height="819" loading="lazy" alt="CPU–GPU hybrid vector search architecture showing CPU graph traversal, candidate generation and batching, asynchronous transfers through CUDA streams, GPU distance computations and top-k selection, and index storage." aria-describedby="architecture-caption">
+  <figcaption id="architecture-caption"><strong>Figure 1.</strong> Proposed CPU–GPU hybrid vector search architecture. The CPU manages graph traversal and candidate batching, while the GPU performs parallel distance computations. Data transfers and computation can overlap across independent query batches.</figcaption>
+</figure>
 </section>
 <section id="challenge" class="proposal-section">
 <h2>3. The Challenge</h2>

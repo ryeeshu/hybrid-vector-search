@@ -74,6 +74,8 @@ nav { display: flex; gap: 27px; }
 .figure-scroll { border: 1px solid var(--line); background: #fafcfd; overflow-x: auto; }
 .architecture-figure img { display: block; width: 100%; height: auto; }
 figcaption { font-size: 13px; line-height: 1.65; color: var(--muted); margin-top: 10px; }
+.proposal-figure { margin: 18px 0 0; }
+.proposal-figure img { display: block; width: 100%; height: auto; }
 ul, ol { margin: 12px 0 14px; padding-left: 25px; }
 li { padding-left: 4px; margin-bottom: 5px; }
 li:last-child { margin-bottom: 0; }
@@ -198,6 +200,8 @@ th:first-child { width: 32%; }
   body { background: white; color: #222; font: 10pt/1.55 Arial, sans-serif; }
   .site-header, .site-footer, .skip-link, .back-link, .proposal-sidebar, .print-button { display: none !important; }
   .animation-controls { display: none !important; }
+  .proposal-figure { break-inside: avoid; page-break-inside: avoid; }
+  .proposal-figure figcaption { font-size: 8pt; line-height: 1.5; }
   .container { width: 100%; max-width: none; }
   .project-heading { padding: 0 0 15pt; }
   h1 { font-size: 23pt; line-height: 1.2; letter-spacing: -.4pt; }
