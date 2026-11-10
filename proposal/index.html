@@ -8,7 +8,7 @@
   <title>Project Proposal | CPU–GPU Vector Search · CMU 15-618</title>
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../assets/styles.css">
-  <script src="../assets/main.js" defer></script>
+  <script src="../assets/main.js?v=animation-2" defer></script>
 </head>
 <body class="proposal-page">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -79,6 +79,7 @@
 <section id="resources" class="proposal-section">
 <h2>4. Resources</h2>
 <p>We plan to implement the engine primarily in C++ and CUDA, using the course&#x27;s GHC machines equipped with NVIDIA RTX 2080 GPUs. We will use CPU multithreading for concurrent graph traversal and SIMD instructions where appropriate for CPU distance calculations. CUDA kernels will perform batched candidate-distance computations, while CUDA streams and pinned host-memory buffers will be used to investigate asynchronous transfers and communication-computation overlap.</p>
+<p>We will also have access to a personal desktop equipped with an AMD Ryzen 7 9800X3D CPU (8 cores, 16 threads) and an NVIDIA RTX 4070 Ti SUPER GPU with 16 GB of memory. This will allow us to evaluate our implementation on two different hardware configurations, including the course's RTX 2080 with 8 GB of GPU memory. We plan to compare how CPU performance, GPU capabilities, memory capacity, and CPU--GPU communication affect the execution strategies.</p>
 <p>We plan to use Faiss to construct the HNSW index and extract its graph connections for our own search implementation. We will verify the graph extraction and search interface during the first week. We will implement our own search traversal, candidate batching, CUDA computation, and CPU–GPU execution pipeline rather than rely on an existing ANN library for the main search operation.</p>
 <p>We plan to begin with the SIFT1M benchmark, which contains one million 128-dimensional vectors, along with query vectors and ground-truth nearest-neighbor results. We will also use controlled synthetic workloads to vary dataset size, query concurrency, and access patterns.</p>
 <p>Since SIFT1M fits within GPU memory, we will initially enforce a configurable GPU-memory budget to study out-of-core behavior. If resources and index-construction time permit, we will also evaluate a larger dataset whose memory footprint genuinely exceeds the available GPU memory.</p>
@@ -140,6 +141,7 @@
 <p>The GPU is well suited for performing the same numerical operation across many candidate vectors. By combining candidate work from several queries, we aim to create sufficiently large batches to make effective use of CUDA&#x27;s parallel execution resources and memory bandwidth.</p>
 <p>The main difficulty is that the CPU and GPU have separate memory spaces, and data movement between them can be expensive. This makes our chosen platform useful for studying the interaction between computation, communication, data locality, and synchronization.</p>
 <p>C++ and CUDA provide direct control over memory allocation, CPU threads, GPU kernels, and asynchronous operations, allowing us to experiment with different parallel execution strategies and measure their overheads.</p>
+<p>Testing on both the GHC machines and our personal desktop will also help us understand how the effectiveness of our optimizations changes across hardware generations. In particular, the different GPU memory capacities and CPU--GPU communication characteristics will allow us to investigate whether the same batching and pipelining strategies remain effective on both systems.</p>
 </section>
 <section id="schedule" class="proposal-section">
 <h2>7. Schedule</h2>
@@ -172,9 +174,5 @@
     </article>
   </div>
 </main>
-<footer class="site-footer"><div class="container footer-inner">
-  <p>15-618 Final Project · Fall 2026<br>Carnegie Mellon University</p>
-  <nav aria-label="Footer navigation"><a href="../">Home</a><a href="./">Proposal</a></nav>
-</div></footer>
 </body>
 </html>

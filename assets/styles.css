@@ -17,6 +17,8 @@ body {
   background: #fff;
   color: var(--body);
   font: 16px/1.75 var(--sans);
+  text-align: justify;
+  text-justify: inter-word;
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-underline-offset: 3px; }
@@ -53,6 +55,18 @@ nav { display: flex; gap: 27px; }
 .home-content > section { padding: 42px 0; border-bottom: 1px solid var(--line); }
 .home-content > section > p { max-width: 960px; }
 .home-content > section > :last-child { margin-bottom: 0; }
+/* Let each table's final row border close the section without an empty band. */
+.home-content > #evaluation,
+.home-content > #timeline { padding-bottom: 0; border-bottom: 0; }
+.overview-animation { max-width: 800px; margin: 28px auto 0; }
+.animation-frame { display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+.animation-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.animation-controls[hidden] { display: none; }
+.animation-controls button { padding: 7px 18px; border: 1px solid #a5c1cc; border-radius: 2px; background: var(--soft); color: var(--accent); font: 13px var(--sans); cursor: pointer; }
+.animation-controls button:hover:not(:disabled) { background: #eaf1f4; }
+.animation-controls button:disabled { opacity: .5; cursor: default; }
+.animation-status { font-size: 12px; color: var(--muted); }
+.animation-counter { margin-left: auto; font: 11px var(--mono); color: var(--muted); }
 .challenge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px 42px; margin-top: 29px; }
 .challenge-grid > div { padding-top: 18px; border-top: 1px solid var(--line); }
 .challenge-grid p { font-size: 15px; margin: 0; }
@@ -74,7 +88,7 @@ li::marker { color: var(--accent); }
 .goals-grid ul { font-size: 15px; margin-top: 12px; }
 .section-note { color: var(--muted); font-size: 14px; margin-top: 19px; padding-top: 18px; border-top: 1px solid var(--line); }
 .table-scroll { width: 100%; overflow-x: auto; margin: 23px 0 7px; }
-table { width: 100%; min-width: 550px; border-collapse: collapse; text-align: left; font-size: 14px; line-height: 1.65; }
+table { width: 100%; min-width: 550px; border-collapse: collapse; text-align: justify; font-size: 14px; line-height: 1.65; }
 th, td { padding: 13px 17px; border-bottom: 1px solid var(--line); vertical-align: top; }
 thead th { font-size: 12px; color: #3b5360; font-weight: 600; background: var(--soft); border-top: 1px solid var(--line); }
 tbody th { font-weight: 500; color: var(--ink); }
@@ -85,9 +99,9 @@ th:first-child { width: 32%; }
 .deliverables-list > div:last-child { border-bottom: 0; padding-bottom: 0; }
 .deliverables-list dt { font-size: 15px; font-weight: 600; color: var(--ink); }
 .deliverables-list dd { margin: 0; font-size: 14px; }
-.deliverables-list dd:last-child { text-align: right; }
+.deliverables-list dd:last-child { text-align: justify; }
 .deliverables-list .status { color: var(--muted); font-size: 13px; }
-.deliverables-list .source-code-note { grid-column: 2 / -1; text-align: left !important; }
+.deliverables-list .source-code-note { grid-column: 2 / -1; }
 .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
 .team-grid p { font-size: 14px; margin-bottom: 0; color: var(--muted); }
 .home-content > section:last-child { border-bottom: 0; padding-bottom: 56px; }
@@ -182,6 +196,7 @@ th:first-child { width: 32%; }
   @page { size: letter; margin: .7in; }
   body { background: white; color: #222; font: 10pt/1.55 Arial, sans-serif; }
   .site-header, .site-footer, .skip-link, .back-link, .proposal-sidebar, .print-button { display: none !important; }
+  .animation-controls { display: none !important; }
   .container { width: 100%; max-width: none; }
   .project-heading { padding: 0 0 15pt; }
   h1 { font-size: 23pt; line-height: 1.2; letter-spacing: -.4pt; }
