@@ -6,6 +6,7 @@ on:
     paths:
       - index.html
       - proposal/**
+      - milestone/**
       - assets/**
       - scripts/check_site.py
       - .nojekyll
@@ -52,7 +53,7 @@ jobs:
           output.mkdir()
           for name in ('index.html', '.nojekyll'):
               shutil.copy2(name, output / name)
-          for name in ('assets', 'proposal'):
+          for name in ('assets', 'proposal', 'milestone'):
               shutil.copytree(name, output / name)
           page = output / 'proposal/index.html'
           url = escape(os.environ['PROJECT_URL'].rstrip('/') + '/', quote=True)

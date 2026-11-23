@@ -140,6 +140,24 @@ th:first-child { width: 32%; }
 .references { padding-left: 23px; }
 .references li { font-size: 13px; margin-bottom: 14px; overflow-wrap: anywhere; }
 .references a { font-size: 12px; }
+.heading-links { display: flex; flex-wrap: wrap; gap: 12px; }
+.goals-revised { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); }
+.goals-revised ul { font-size: 15px; }
+.goals-revised p { font-size: 15px; }
+.timeline-subheading { margin: 26px 0 0; }
+.status-done { color: var(--accent); font-weight: 600; }
+.table-caption { font-size: 13px; line-height: 1.6; color: var(--muted); margin: 18px 0 0; }
+.table-caption + .table-scroll { margin-top: 8px; }
+.num-table td, .num-table thead th { text-align: right; white-space: nowrap; }
+.num-table thead th:first-child, .num-table tbody th { text-align: right; }
+.num-table thead th[colspan] { text-align: center; }
+.num-table tbody th.group { text-align: left; font-style: italic; background: var(--soft); white-space: normal; }
+.proposal-section .num-table { min-width: 620px; }
+.proposal-section .num-table th:first-child { width: auto; }
+td.who { white-space: nowrap; }
+.schedule-table th:first-child, .proposal-section .schedule-table th:first-child { width: 120px; white-space: nowrap; }
+.milestone-figure { margin: 18px 0 20px; }
+.milestone-figure img { display: block; width: 100%; max-width: 780px; height: auto; margin: 0 auto; border: 1px solid var(--line); }
 @media (max-width: 900px) {
   .container { width: calc(100% - 56px); }
   h1 { font-size: 33px; }
@@ -202,6 +220,9 @@ th:first-child { width: 32%; }
   .animation-controls { display: none !important; }
   .proposal-figure { break-inside: avoid; page-break-inside: avoid; }
   .proposal-figure figcaption { font-size: 8pt; line-height: 1.5; }
+  .milestone-figure { break-inside: avoid; page-break-inside: avoid; }
+  .milestone-figure img { max-width: 5.6in; }
+  .milestone-figure figcaption, .table-caption { font-size: 8pt; line-height: 1.5; }
   .container { width: 100%; max-width: none; }
   .project-heading { padding: 0 0 15pt; }
   h1 { font-size: 23pt; line-height: 1.2; letter-spacing: -.4pt; }
