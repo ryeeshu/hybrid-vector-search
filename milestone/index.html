@@ -122,15 +122,27 @@
 </section>
 <section id="concerns" class="proposal-section">
 <h2>4. Concerns and Unknowns</h2>
+<h3>Risks to the plan</h3>
 <ul>
 <li><strong>The hybrid may never beat the CPU.</strong> On GHC the resident path beat eight CPU threads by 1.5× at one batch size, before any traversal cost, and visits are only weakly concentrated. If the crossover needs most of the dataset resident, the result is negative, and we will report it as such.</li>
-<li><strong>The resident kernel on the RTX 2080 slows sharply</strong> between 16,384 and 65,536 pairs, for unknown reasons. This bounds the useful batch size on GHC, and we must profile it before tuning the batched hybrid.</li>
-<li><strong>Host-side cost of batching.</strong> Keeping thousands of query states in flight and routing distances back to them is CPU work that V2 does not do. We do not yet know how much of the round-trip saving it gives back.</li>
-<li><strong>The CPU baseline.</strong> V1 scales 4.4–4.7× on eight cores on GHC, for reasons not yet measured. On GHC at eight threads, a variant that runs V2’s search loop with CPU distances was 5–9% faster than V1, and 7% slower at one thread; on the desktop it was slower at both thread counts. Until we understand this, our CPU baseline on GHC may be slightly weak.</li>
-<li><strong>WSL2.</strong> The desktop does not scale small GPU calls across threads. It remains useful for large batches and for its 16&nbsp;GB of device memory; our conclusions about per-call overhead come from GHC only.</li>
-<li><strong>Time.</strong> Two new strategies, the resident set and the full evaluation must fit in two and a half weeks, with Thanksgiving (Nov&nbsp;26–27) inside the first block. We ordered the schedule so that every half-week ends with something measurable.</li>
+<li><strong>Shipped vectors are bounded by the copy to the device on GHC.</strong> At 16,384 to 262,144 pairs the copy alone, from one caller on one stream, runs at 12.6–12.8&nbsp;GB/s, while eight CPU threads consume the same vectors at the equivalent of 25–27&nbsp;GB/s. Unless concurrent copies exceed that rate, which we have not measured, no batching or overlap lets a purely shipped path compute distances faster than eight threads on GHC. We infer that it cannot, and do not plan to optimize the gather. On the desktop the copy runs at 24.6–26.0&nbsp;GB/s against 37–39&nbsp;GB/s for 16 CPU threads, and the question stays open. Why the gather costs 1.34× the CPU’s distance time on GHC but 0.61× on the desktop is unexplained.</li>
+<li><strong>The resident kernel on the RTX 2080 slows sharply</strong> between 16,384 and 65,536 pairs, for unknown reasons. This bounds the useful batch size on GHC. Yeeshu profiles it first (Nov&nbsp;24–26).</li>
+<li><strong>Host-side cost of batching.</strong> Keeping thousands of query states in flight and routing distances back to them is CPU work that V2 does not do. The batch-size sweep (Nov&nbsp;27–29) measures how much of the round-trip saving it gives back.</li>
+<li><strong>Time.</strong> Two new strategies, the resident set and the full evaluation must fit in two and a half weeks, with Thanksgiving (Nov&nbsp;26–27) inside the first block. Every half-week ends with something measurable, and pipelining is the first item we simplify.</li>
 </ul>
-<p>Beyond coding, the GHC data and build directories live in scratch space, and we must rebuild them on a GHC machine before the final sweeps. Otherwise the remaining work is building and measuring: toolchains, data, tests and measurement scripts are in place on both machines.</p>
+<h3>Unexplained results and how we handle them</h3>
+<ul>
+<li><strong>The CPU baseline.</strong> V1 scales 4.4–4.7× on eight cores on GHC, and a variant that runs V2’s search loop with CPU distances was 5–9% faster than V1 there at eight threads (7% slower at one; slower at both thread counts on the desktop). Our CPU baseline on GHC may therefore be slightly weak. We profile both on GHC (thread placement, memory bandwidth) during the freeze (Dec&nbsp;6–7).</li>
+<li><strong>Round-trip composition at eight threads.</strong> At eight threads most of a round trip moves from waiting into the copy and launch calls, and V2 scales slightly better than 8×. At one thread, stage-timing runs took slightly less time per round trip than normal runs (<a href="#fig-stages">Figure 2</a>). None of this changes a comparison, because thread time per round trip stays at 25–27&nbsp;µs; we report only totals and do not plan to investigate further.</li>
+<li><strong>Variation between launches.</strong> V2 at eight threads on GHC varied by up to 9% between launches, on a shared machine that runs the <code>powersave</code> CPU governor. The sweep logs package temperature at the start of every launch; we will compare it with the launch medians. In the final sweeps we will also sample clock frequency during each pass (at launch start it reads the idle value) and add one launch to any configuration whose launches differ by more than 5%, as we did here.</li>
+<li><strong>WSL2.</strong> The desktop does not scale small GPU calls across threads. We will not isolate the cause, which would require running the desktop under native Linux; GHC is our reference for per-call overhead, and the desktop serves large batches and its 16&nbsp;GB of device memory.</li>
+</ul>
+<h3>Known limits of our setup</h3>
+<ul>
+<li><strong>Exact equality needs integer data.</strong> Our checks that every hybrid returns V1’s exact results rely on SIFT’s integer values, which make CPU and GPU distances bit-identical. GIST1M is not integer-valued, so before using it we will replace the check with a tolerance-based comparison.</li>
+<li><strong>Device-memory limits under WSL2.</strong> In a manual test on the desktop, an allocation larger than the 16&nbsp;GB card succeeded, so the card will not enforce a memory budget. Our budget accounting (Nov&nbsp;24–26) enforces it in our own code on both machines.</li>
+<li><strong>Scratch storage.</strong> The GHC data and build directories live in scratch space; we rebuild them on a GHC machine before the final sweeps (Dec&nbsp;3–5).</li>
+</ul>
 </section>
 <section id="schedule" class="proposal-section">
 <h2>5. Revised Schedule</h2>
@@ -149,7 +161,7 @@
 <tr><th scope="row" rowspan="2">Dec 3–5</th><td>Pipelined hybrid (V4): query groups with their own buffers and streams, asynchronous copies, overlap of traversal and transfers; equality test.</td><td class="who">Yeeshu</td></tr>
 <tr><td>Measurement of V4 (overlap, utilization, latency); rebuild data and build on a GHC machine.</td><td class="who">Christian</td></tr>
 <tr><th scope="row" rowspan="2">Dec 6–7</th><td>Feature freeze. Full sweeps of all four strategies (efSearch, batch size, resident fraction, threads) on GHC.</td><td class="who">Yeeshu</td></tr>
-<tr><td>The same sweeps on the desktop; profile the CPU baseline’s scaling.</td><td class="who">Christian</td></tr>
+<tr><td>The same sweeps on the desktop; profile the CPU baseline on GHC (V1’s scaling, the faster CPU-distance variant).</td><td class="who">Christian</td></tr>
 <tr><th scope="row" rowspan="2">Dec 8–10</th><td>Final report: GPU sections (backend, resident set, pipelining) and their analysis.</td><td class="who">Yeeshu</td></tr>
 <tr><td>Final report: search, batching and evaluation sections; final figures; post-freeze items if time permits.</td><td class="who">Christian</td></tr>
 <tr><th scope="row" rowspan="3">Dec 10–11</th><td>Poster: architecture and GPU panels.</td><td class="who">Yeeshu</td></tr>
