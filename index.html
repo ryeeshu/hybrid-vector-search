@@ -94,7 +94,7 @@
       <li><h3>Batched Hybrid Search</h3><p>Candidates from multiple queries are grouped into larger GPU workloads. This aims to improve GPU utilization and reduce the overhead of many small kernel launches.</p></li>
       <li><h3>Pipelined Hybrid Search</h3><p>Asynchronous transfers and multiple buffers are used to overlap CPU graph traversal, communication, and GPU computation across independent query batches.</p></li>
     </ol>
-    <p class="section-note"><strong>Status, November 23:</strong> the CPU-only and basic hybrid strategies are built, return identical results, and are measured on both machines. The batched and pipelined strategies are next; see the <a href="milestone/">milestone report</a>.</p>
+    <p class="section-note"><strong>Status, November 23:</strong> the CPU-only and basic hybrid strategies are built, return identical results, and are measured on both machines. The batched and pipelined strategies are next. See the <a href="milestone/">milestone report</a>.</p>
   </section>
 
   <section id="goals" aria-labelledby="goals-heading">
@@ -119,7 +119,7 @@
       <p>We keep every goal above and add one. Preliminary measurements show that shipping candidate vectors to the GPU never beat one CPU thread, while vectors resident in GPU memory beat all CPU threads at some large batch sizes. Details are in the <a href="milestone/#goals">milestone report</a>.</p>
       <ul>
         <li><strong>Added to the planned deliverables:</strong> a static GPU-resident vector set, chosen by visit frequency. The GPU-memory budget becomes the fraction of the dataset resident on the device, swept from 0 to 100%.</li>
-        <li><strong>Performance target:</strong> we still report whether batching and pipelining give at least 1.5× the throughput of the basic hybrid, and add three questions: at what resident fraction a hybrid overtakes the 8-thread CPU baseline; whether overlap is worth 1.5× over batching alone; and whether shipping a non-resident vector ever beats computing its distance on the CPU.</li>
+        <li><strong>Performance target:</strong> we still report whether batching and pipelining give at least 1.5× the throughput of the basic hybrid, and add three questions: at what resident fraction a hybrid overtakes the 8-thread CPU baseline, whether overlap is worth 1.5× over batching alone, and whether shipping a non-resident vector ever beats computing its distance on the CPU.</li>
         <li><strong>Stretch goals kept:</strong> graph traversal on the GPU (not scheduled, for lack of time) and adaptive scheduling, starting with a threshold policy after the feature freeze if time permits.</li>
         <li><strong>If time runs short:</strong> we simplify the pipelined strategy first, as the proposal planned.</li>
       </ul>
@@ -149,7 +149,7 @@
       <tbody>
         <tr><th scope="row">November 6–9, 2026</th><td>Finalize architecture, dataset, graph format, and proposal</td><td><span class="status-done">Done</span></td></tr>
         <tr><th scope="row">November 10–16, 2026</th><td>CPU graph-search baseline and initial CUDA kernel</td><td><span class="status-done">Done</span>, started November 18</td></tr>
-        <tr><th scope="row">November 17–23, 2026</th><td>Hybrid integration, batching, and milestone report</td><td>Hybrid and <a href="milestone/">milestone report</a> done; batching moved to November 24–26</td></tr>
+        <tr><th scope="row">November 17–23, 2026</th><td>Hybrid integration, batching, and milestone report</td><td>Hybrid and <a href="milestone/">milestone report</a> done, batching moved to November 24–26</td></tr>
         <tr><th scope="row">November 24–30, 2026</th><td>GPU-memory staging and asynchronous execution</td><td>Replanned below</td></tr>
         <tr><th scope="row">December 1–7, 2026</th><td>Profiling, optimization, and experiments</td><td>Replanned below</td></tr>
         <tr><th scope="row">December 8–10, 2026</th><td>Final report and performance analysis</td><td>Replanned below</td></tr>
@@ -160,19 +160,19 @@
     <div class="table-scroll" tabindex="0" role="region" aria-label="Revised schedule"><table class="schedule-table">
       <thead><tr><th scope="col">Dates</th><th scope="col">Task</th><th scope="col">Who</th></tr></thead>
       <tbody>
-        <tr><th scope="row">Nov 6–23</th><td><em>Done:</em> graph export and loaders; CPU-only; CUDA distance backend; Hybrid-Sync (synchronized hybrid); equivalence tests; transfer benchmark; first sweeps on both machines.</td><td class="who">Christian, Yeeshu</td></tr>
-        <tr><th scope="row" rowspan="2">Nov 24–26</th><td>Batched hybrid (Hybrid-Batch): many queries in flight, one round trip per round for all of them, configurable batch size; equality test against CPU-only.</td><td class="who">Christian</td></tr>
-        <tr><td>Profile the resident kernel on the RTX 2080 at large batches; fix or bound it. Device-memory budget accounting.</td><td class="who">Yeeshu</td></tr>
-        <tr><th scope="row" rowspan="2">Nov 27–29</th><td>Slot refill so finished queries are replaced (latency from submission to completion); batch-size sweep on both machines.</td><td class="who">Christian</td></tr>
-        <tr><td>Static resident set: choose vectors by visit frequency; mixed resident and shipped kernel; policy for non-resident candidates (ship or compute on the CPU).</td><td class="who">Yeeshu</td></tr>
-        <tr><th scope="row" rowspan="2">Nov 30–Dec 2</th><td>Integrate the resident set into Hybrid-Batch; equality test.</td><td class="who">Yeeshu</td></tr>
-        <tr><td>Resident-fraction sweep (0, 1, 5, 10, 25, 50, 100%) on both machines; GPU-utilization measurement.</td><td class="who">Christian</td></tr>
-        <tr><th scope="row" rowspan="2">Dec 3–5</th><td>Pipelined hybrid (Hybrid-Pipe): query groups with their own buffers and streams, asynchronous copies, overlap of traversal and transfers; equality test.</td><td class="who">Yeeshu</td></tr>
-        <tr><td>Measurement of Hybrid-Pipe (overlap, utilization, latency); rebuild data and build on a GHC machine.</td><td class="who">Christian</td></tr>
+        <tr><th scope="row">Nov 6–23</th><td><em>Done:</em> graph export and loaders, CPU-only, CUDA distance backend, Hybrid-Sync (synchronized hybrid), equivalence tests, transfer benchmark, first sweeps on both machines.</td><td class="who">Christian, Yeeshu</td></tr>
+        <tr><th scope="row" rowspan="2">Nov 24–26</th><td>Batched hybrid (Hybrid-Batch): many queries in flight, one round trip per round for all of them, configurable batch size. Equality test against CPU-only.</td><td class="who">Christian</td></tr>
+        <tr><td>Profile the resident kernel on the RTX 2080 at large batches, then fix or bound it. Device-memory budget accounting.</td><td class="who">Yeeshu</td></tr>
+        <tr><th scope="row" rowspan="2">Nov 27–29</th><td>Slot refill so finished queries are replaced (latency from submission to completion). Batch-size sweep on both machines.</td><td class="who">Christian</td></tr>
+        <tr><td>Static resident set: choose vectors by visit frequency, mixed resident and shipped kernel, policy for non-resident candidates (ship or compute on the CPU).</td><td class="who">Yeeshu</td></tr>
+        <tr><th scope="row" rowspan="2">Nov 30–Dec 2</th><td>Integrate the resident set into Hybrid-Batch. Equality test.</td><td class="who">Yeeshu</td></tr>
+        <tr><td>Resident-fraction sweep (0, 1, 5, 10, 25, 50, 100%) on both machines. GPU-utilization measurement.</td><td class="who">Christian</td></tr>
+        <tr><th scope="row" rowspan="2">Dec 3–5</th><td>Pipelined hybrid (Hybrid-Pipe): query groups with their own buffers and streams, asynchronous copies, overlap of traversal and transfers. Equality test.</td><td class="who">Yeeshu</td></tr>
+        <tr><td>Measurement of Hybrid-Pipe (overlap, utilization, latency). Rebuild data and build on a GHC machine.</td><td class="who">Christian</td></tr>
         <tr><th scope="row" rowspan="2">Dec 6–7</th><td>Feature freeze. Full sweeps of all four strategies (efSearch, batch size, resident fraction, threads) on GHC.</td><td class="who">Yeeshu</td></tr>
-        <tr><td>The same sweeps on the desktop; profile the CPU baseline’s scaling.</td><td class="who">Christian</td></tr>
+        <tr><td>The same sweeps on the desktop. Profile the CPU baseline’s scaling.</td><td class="who">Christian</td></tr>
         <tr><th scope="row" rowspan="2">Dec 8–10</th><td>Final report: GPU sections (backend, resident set, pipelining) and their analysis.</td><td class="who">Yeeshu</td></tr>
-        <tr><td>Final report: search, batching and evaluation sections; final figures; post-freeze items if time permits.</td><td class="who">Christian</td></tr>
+        <tr><td>Final report: search, batching and evaluation sections, final figures, post-freeze items if time permits.</td><td class="who">Christian</td></tr>
         <tr><th scope="row" rowspan="3">Dec 10–11</th><td>Poster: architecture and GPU panels.</td><td class="who">Yeeshu</td></tr>
         <tr><td>Poster: results panels.</td><td class="who">Christian</td></tr>
         <tr><td>Present the poster (Dec 11).</td><td class="who">Christian, Yeeshu</td></tr>
