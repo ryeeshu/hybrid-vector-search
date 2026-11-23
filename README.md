@@ -11,6 +11,8 @@ Academic project website for **Heterogeneous CPU–GPU Graph-Based Vector Search
 ```text
 index.html                  Project homepage
 proposal/index.html         Complete formal proposal
+milestone/index.html        Milestone report (same content as milestone/milestone-report.pdf)
+milestone/figs/             Figures of the milestone report
 assets/styles.css           Shared responsive and print styles
 assets/main.js              Print control and deployment URL enhancement
 assets/architecture.svg     Standalone technical architecture figure
@@ -65,6 +67,6 @@ Checked in Chrome at desktop and 390-pixel mobile widths, including homepage-to-
 
 The formal proposal preserves the supplied text, including all eight sections, four Goals and Deliverables subsections, lists, full schedule, and eight reference URLs. The 1.5× target is explicitly tentative. No measured results or completed-report claims are added.
 
-Only the proposal is currently linked in **Project Deliverables**. Add milestone, final report, poster, and source-code links once the actual files or publication destinations exist. Replace each Upcoming label only when its status is supported. Keep the scheduled deadlines visible.
+The proposal and the milestone report are linked in **Project Deliverables**. Add final report, poster, and source-code links once the actual files or publication destinations exist. Replace each Upcoming label only when its status is supported. Keep the scheduled deadlines visible.
 
 Reference checks reached the six arXiv, NVIDIA, and Faiss destinations. Both supplied USENIX URLs returned HTTP 403 to automated fetching; they are retained exactly as provided and should be checked manually before submission.
