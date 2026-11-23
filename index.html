@@ -160,15 +160,15 @@
     <div class="table-scroll" tabindex="0" role="region" aria-label="Revised schedule"><table class="schedule-table">
       <thead><tr><th scope="col">Dates</th><th scope="col">Task</th><th scope="col">Who</th></tr></thead>
       <tbody>
-        <tr><th scope="row">Nov 6–23</th><td><em>Done:</em> graph export and loaders; CPU-only search (V1); CUDA distance backend; synchronized hybrid (V2); equivalence tests; transfer benchmark; first sweeps on both machines.</td><td class="who">Christian, Yeeshu</td></tr>
-        <tr><th scope="row" rowspan="2">Nov 24–26</th><td>Batched hybrid (V3): many queries in flight, one round trip per round for all of them, configurable batch size; equality test against V1.</td><td class="who">Christian</td></tr>
+        <tr><th scope="row">Nov 6–23</th><td><em>Done:</em> graph export and loaders; CPU-only; CUDA distance backend; Hybrid-Sync (synchronized hybrid); equivalence tests; transfer benchmark; first sweeps on both machines.</td><td class="who">Christian, Yeeshu</td></tr>
+        <tr><th scope="row" rowspan="2">Nov 24–26</th><td>Batched hybrid (Hybrid-Batch): many queries in flight, one round trip per round for all of them, configurable batch size; equality test against CPU-only.</td><td class="who">Christian</td></tr>
         <tr><td>Profile the resident kernel on the RTX 2080 at large batches; fix or bound it. Device-memory budget accounting.</td><td class="who">Yeeshu</td></tr>
         <tr><th scope="row" rowspan="2">Nov 27–29</th><td>Slot refill so finished queries are replaced (latency from submission to completion); batch-size sweep on both machines.</td><td class="who">Christian</td></tr>
         <tr><td>Static resident set: choose vectors by visit frequency; mixed resident and shipped kernel; policy for non-resident candidates (ship or compute on the CPU).</td><td class="who">Yeeshu</td></tr>
-        <tr><th scope="row" rowspan="2">Nov 30–Dec 2</th><td>Integrate the resident set into V3; equality test.</td><td class="who">Yeeshu</td></tr>
+        <tr><th scope="row" rowspan="2">Nov 30–Dec 2</th><td>Integrate the resident set into Hybrid-Batch; equality test.</td><td class="who">Yeeshu</td></tr>
         <tr><td>Resident-fraction sweep (0, 1, 5, 10, 25, 50, 100%) on both machines; GPU-utilization measurement.</td><td class="who">Christian</td></tr>
-        <tr><th scope="row" rowspan="2">Dec 3–5</th><td>Pipelined hybrid (V4): query groups with their own buffers and streams, asynchronous copies, overlap of traversal and transfers; equality test.</td><td class="who">Yeeshu</td></tr>
-        <tr><td>Measurement of V4 (overlap, utilization, latency); rebuild data and build on a GHC machine.</td><td class="who">Christian</td></tr>
+        <tr><th scope="row" rowspan="2">Dec 3–5</th><td>Pipelined hybrid (Hybrid-Pipe): query groups with their own buffers and streams, asynchronous copies, overlap of traversal and transfers; equality test.</td><td class="who">Yeeshu</td></tr>
+        <tr><td>Measurement of Hybrid-Pipe (overlap, utilization, latency); rebuild data and build on a GHC machine.</td><td class="who">Christian</td></tr>
         <tr><th scope="row" rowspan="2">Dec 6–7</th><td>Feature freeze. Full sweeps of all four strategies (efSearch, batch size, resident fraction, threads) on GHC.</td><td class="who">Yeeshu</td></tr>
         <tr><td>The same sweeps on the desktop; profile the CPU baseline’s scaling.</td><td class="who">Christian</td></tr>
         <tr><th scope="row" rowspan="2">Dec 8–10</th><td>Final report: GPU sections (backend, resident set, pipelining) and their analysis.</td><td class="who">Yeeshu</td></tr>
